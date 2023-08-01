@@ -16,5 +16,8 @@
     "url": "https://github.com/matheuscascao/node-study/issues"
   },
   "homepage": "https://github.com/matheuscascao/node-study#readme",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
