@@ -1,6 +1,6 @@
 import express from 'express';
 import db from "./config/dbConnect.js"
-import booksModel from "./models/Book.js"
+import books from "./models/Book.js"
 
 db.on("error", console.log.bind(console, 'Connection Refused'))
 db.once("open", () => {
@@ -10,58 +10,51 @@ db.once("open", () => {
 var app = express();
 app.use(express.json())
 
-const books = [
-  {id: 1, "title": "LOTR 1", description: "the first book of the lotr series"},
-  {id: 2, "title": "LOTR 2", description: "the second book of the lotr series", pageNumber: 199}
-]
-
-app.get('/books/:id', (req, res) => {
-  if (req.query.id) {
-    let itemId = req.query.id;
-    let bookItem = books.find(({id}) => id == itemId);
-    res.status(200).json(bookItem);
+app.get('/books/:title?', (req, res) => {
+  if (req.query.title) {
+    books.findOne({title: req.query.title}).then((data) => {
+      console.log(data);
+      res.status(200).json(data);
+    });
   }
   else {
-    res.status(200).json(books);
+    books.find().then((data) => {
+      console.log(data);
+      res.status(200).json(data);
+    })
   }
 });
 
 app.post('/books', (req, res) => {
-  let jsonResponse = req.body;
-  jsonResponse.id = books.length + 1;
-  books.push(req.body);
-  console.log(books);
-  res.status(201).json(req.body)
+  let book = new books(req.body);
+
+  book.save().then(() => {
+    res.status(200).json({ message: book.toJSON() })
+  }).catch((err) => { 
+    res.status(500).json({ message: err })
+  })
 });
 
-app.delete('/books/:id', (req, res) => {
-  let itemId = req.query.id;
-  let itemToBeRemovedIndex = findBook(itemId);
-  console.log(itemToBeRemovedIndex);
+app.delete('/books/:title?', (req, res) => {
+  let itemTitle = req.query.title;
 
-  if (itemToBeRemovedIndex !== -1) {
-    books.splice(itemToBeRemovedIndex, 1);
-    res.status(200).json({ message: 'Book deleted successfully' });
-  } else {
-    res.status(404).json({ message: 'Book not found' });
-  }
+  books.findOneAndDelete({ title: itemTitle }).then( () => {
+    res.status(200).json({ message: 'Book deleted successfully' })
+  }).catch((err) => { 
+    res.status(500).json({ message: err })
+  })
 });
 
-app.patch('/books/:id', (req, res) => {
-  let jsonResponse = req.body;
-  let itemId = req.params.id;
-  let itemMessage = jsonResponse.message;
-  let itemToBeUpdatedIndex = findBook(itemId);
-  if (itemToBeUpdatedIndex !== -1){
-    books[itemToBeUpdatedIndex].message = itemMessage;
-    res.status(201).json({ message: 'Book updated successfully' })
-  } else {
-    res.status(404).json({ message: 'Book updated successfully' })
-  }
+app.patch('/books/:title?', (req, res) => {
+  let book = new books(req.body);
+  let itemtitle = req.query.title;
+  books.findOneAndUpdate({ title: itemtitle }, req.body).then( () => {
+    console.log({ title: itemtitle });
+    console.log(req.body)
+    res.status(200).json({ message: 'Book updated successfully' })
+  }).catch((err) => { 
+    res.status(500).json({ message: err })
+  })
 })
-
-function findBook(bookId) {
-  return books.findIndex(book => book.id == bookId);
-}
 
 export default app;
